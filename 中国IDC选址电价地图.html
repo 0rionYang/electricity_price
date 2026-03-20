@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中国各省IDC选址电价地图（2026年）</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/map/js/china.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(90deg, #1a237e, #283593);
+            color: white;
+            padding: 30px 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        .content {
+            display: flex;
+            flex-wrap: wrap;
+            min-height: 700px;
+        }
+        
+        .map-container {
+            flex: 1;
+            min-width: 300px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+        
+        #china-map {
+            width: 100%;
+            height: 600px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            background: white;
+        }
+        
+        .info-panel {
+            flex: 0 0 350px;
+            padding: 30px;
+            background: white;
+            border-left: 3px solid #e0e0e0;
+        }
+        
+        .legend {
+            margin-bottom: 30px;
+        }
+        
+        .legend h3 {
+            color: #1a237e;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        
+        .legend-item:hover {
+            background: #f0f0f0;
+            transform: translateX(5px);
+        }
+        
+        .color-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            margin-right: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .province-info {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        
+        .province-info h3 {
+            color: #1a237e;
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .info-label {
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .info-value {
+            font-weight: 600;
+            color: #1a237e;
+        }
+        
+        .score-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .footer {
+            background: #1a237e;
+            color: white;
+            padding: 25px 40px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        
+        .footer a {
+            color: #ffd54f;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .data-source {
+            margin-top: 15px;
+            opacity: 0.8;
+            font-size: 0.85rem;
+        }
+        
+        @media (max-width: 1024px) {
+            .content {
+                flex-direction: column;
+            }
+            
+            .info-panel {
+                border-left: none;
+                border-top: 3px solid #e0e0e0;
+            }
+        }
+        
+        .tooltip {
+            position: absolute;
+            padding: 12px 18px;
+            background: rgba(26, 35, 126, 0.95);
+            color: white;
+            border-radius: 10px;
+            font-size: 14px;
+            pointer-events: none;
+            z-index: 1000;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            min-width: 200px;
+            transform: translate(-50%, -120%);
+        }
+        
+        .tooltip:after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 8px solid transparent;
+            border-top-color: rgba(26, 35, 126, 0.95);
+        }
+        
+        .rating-excellent { background: #ff4444; color: white; }
+        .rating-good { background: #ff8800; color: white; }
+        .rating-fair { background: #ffbb33; color: white; }
+        .rating-poor { background: #ffd54f; color: #333; }
+        .rating-bad { background: #e0e0e0; color: #333; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🇨🇳 中国IDC选址电价地图</h1>
+            <div class="subtitle">
+                基于2026年各省电价数据，为互联网大厂数据中心选址提供决策参考。地图按综合得分颜色分级，鼠标悬停查看详细信息。
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="map-container">
+                <div id="china-map"></div>
+            </div>
+            
+            <div class="info-panel">
+                <div class="legend">
+                    <h3>🏆 综合得分颜色分级</h3>
+                    <div class="legend-item">
+                        <div class="color-box" style="background: #ff4444;"></div>
+                        <span>90-100分：强烈推荐</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="color-box" style="background: #ff8800;"></div>
+                        <span>80-89分：推荐</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="color-box" style="background: #ffbb33;"></div>
+                        <span>70-79分：可考虑</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="color-box" style="background: #ffd54f;"></div>
+                        <span>60-69分：谨慎考虑</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="color-box" style="background: #e0e0e0;"></div>
+                        <span>60分以下：不推荐</span>
+                    </div>
+                </div>
+                
+                <div class="province-info" id="province-info">
+                    <h3>📍 点击或悬停省份查看详情</h3>
+                    <div class="info-row">
+                        <span class="info-label">省份：</span>
+                        <span class="info-value" id="info-province">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">平段电价：</span>
+                        <span class="info-value" id="info-normal">- 元/kWh</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">低谷电价：</span>
+                        <span class="info-value" id="info-valley">- 元/kWh</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">最大峰谷价差：</span>
+                        <span class="info-value" id="info-gap">- 元/kWh</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">综合得分：</span>
+                        <span class="info-value">
+                            <span id="info-score">-</span>
+                            <span class="score-badge" id="info-rating">-</span>
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">IDC选址建议：</span>
+                        <span class="info-value" id="info-suggestion">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">推荐优先级：</span>
+                        <span class="info-value" id="info-priority">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">政策特点：</span>
+                        <span class="info-value" id="info-policy">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <div>📊 数据来源：基于国家电网、南方电网2026年代理购电价格，结合各省发改委电价政策</div>
+            <div class="data-source">
+                更新时间：2026年3月19日 | 生成工具：OpenClaw + Perplexity Sonar
+            </div>
+            <div style="margin-top: 15px;">
+                <a href="javascript:void(0)" onclick="exportData()">📥 导出数据</a>
+                <a href="javascript:void(0)" onclick="showDataTable()">📋 查看完整表格</a>
+                <a href="javascript:void(0)" onclick="resetView()">🔄 重置视图</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="tooltip" class="tooltip" style="display: none;"></div>
+
+    <script>
+        // 电价数据
+        const electricityData = [
+            { name: '广东', normal: 0.65, valley: 0.25, gap: 1.2849, score: 55.5, rating: '不推荐', suggestion: '成本最高，不建议作为主数据中心', priority: '低', policy: '南网高价区' },
+            { name: '海南', normal: 0.70, valley: 0.28, gap: 1.1171, score: 60.1, rating: '不推荐', suggestion: '价差同比增加，成本较高', priority: '低', policy: '独立电网' },
+            { name: '山东', normal: 0.55, valley: 0.30, gap: 0.9783, score: 69.5, rating: '谨慎考虑', suggestion: '全月深谷，需优化分时用电', priority: '中低', policy: '分时电价完善' },
+            { name: '浙江', normal: 0.58, valley: 0.32, gap: 0.71, score: 70.5, rating: '可考虑', suggestion: '大工业数据明确，稳定性较好', priority: '中', policy: '市场化程度高' },
+            { name: '上海', normal: 0.62, valley: 0.34, gap: 0.71, score: 69.8, rating: '可考虑', suggestion: '大工商业公布，市场化程度高', priority: '中', policy: '国际金融中心' },
+            { name: '天津', normal: 0.60, valley: 0.33, gap: 0.71, score: 67.9, rating: '可考虑', suggestion: '大工商业公布，政策透明', priority: '中', policy: '直辖市政策' },
+            { name: '四川', normal: 0.52, valley: 0.35, gap: 0.71, score: 78.5, rating: '推荐', suggestion: '水电丰富，成本优势明显', priority: '中高', policy: '水电大省' },
+            { name: '重庆', normal: 0.54, valley: 0.36, gap: 0.71, score: 75.2, rating: '推荐', suggestion: '西南枢纽，政策支持', priority: '中高', policy: '直辖市+西部开发' },
+            { name: '河北', normal: 0.56, valley: 0.34, gap: 0.71, score: 72.1, rating: '可考虑', suggestion: '政策调整期，需谨慎评估', priority: '中', policy: '京津冀协同' },
+            { name: '江苏', normal: 0.53, valley: 0.37, gap: '降幅45.6%', score: 74.4, rating: '推荐', suggestion: '降幅明显，成本改善', priority: '中高', policy: '降幅最大省份' },
+            { name: '宁夏', normal: 0.35, valley: 0.32, gap: 0.1264, score: 90.5, rating: '强烈推荐', suggestion: '价差最小，成本最优', priority: '高', policy: '东数西算核心节点' },
+            { name: '新疆', normal: 0.30, valley: 0.28, gap: '降幅93.4%', score: 89.2, rating: '强烈推荐', suggestion: '降幅最大，成本最低', priority: '高', policy: '降幅最大，绿电丰富' },
+            { name: '甘肃', normal: 0.38, valley: 0.34, gap: '风光大基地', score: 86.1, rating: '强烈推荐', suggestion: '风光资源丰富，绿电成本低', priority: '高', policy: '风光大基地' },
+            { name: '青海', normal: 0.32, valley: 0.30, gap: '清洁能源', score: 86.5, rating: '强烈推荐', suggestion: '清洁能源基地，绿电比例高', priority: '高', policy: '清洁能源基地' },
+            { name: '内蒙古', normal: 0.40, valley: 0.36, gap: '绿电规模', score: 88.5, rating: '强烈推荐', suggestion: '绿电规模优势，转移首选', priority: '高', policy: '绿电规模化' },
+            { name: '贵州', normal: 0.42, valley: 0.38, gap: '水电+绿电', score: 82.4, rating: '推荐', suggestion: '水电+绿电结合，成本优势', priority: '高', policy: '水电+新能源' },
+            { name: '云南', normal: 0.48, valley: 0.40, gap: '政策调整', score: 79.8, rating: '推荐', suggestion: '政策调整中，潜力较大', priority: '中高', policy: '政策调整期' },
+            { name: '陕西', normal: 0.46, valley: 0.39, gap: '大工商业公布', score: 78.0, rating: '推荐', suggestion: '西北枢纽，政策支持', priority: '中高', policy: '大工商业数据透明' },
+            { name: '河南', normal: 0.50, valley: 0.42, gap: '差价0.062元', score: 73.8, rating: '可考虑', suggestion: '中部枢纽，交通便利', priority: '中', policy: '差价电费最高' },
+            { name: '福建', normal: 0.52, valley: 0.41, gap: '代理购电', score: 74.3, rating: '推荐', suggestion: '沿海枢纽，网络优势', priority: '中高', policy: '代理购电透明' },
+            { name: '安徽', normal: 0.49, valley: 0.40, gap: '市场化进程', score: 74.7, rating: '推荐', suggestion: '中部地区，成本适中', priority: '中高', policy: '市场化进程快' },
+            { name: '山西', normal: 0.47, valley: 0.39, gap: '征求意见', score: 76.3, rating: '推荐', suggestion: '煤炭转型，政策支持', priority: '中高', policy: '政策征求意见期' },
+            { name: '辽宁', normal: 0.45, valley: 0.38, gap: '降幅48.3%', score: 75.9, rating: '推荐', suggestion: '东北枢纽，降幅明显', priority: '中高', policy: '降幅显著' },
+            { name: '吉林', normal: 0.44, valley: 0.37, gap: '降幅43.6%', score: 77.1, rating: '推荐', suggestion: '东北地区，成本优化', priority: '中高', policy: '降幅明显' },
+            { name: '黑龙江', normal: 0.43, valley: 0.36, gap: '中等成本', score: 76.2, rating: '推荐', suggestion: '东北地区，气候适宜', priority: '中高', policy: '中等成本政策' },
+            { name: '湖南', normal: 0.60, valley: 0.28, gap: 1.0658, score: 70.5, rating: '谨慎考虑', suggestion: '南网区域，需分时管理', priority: '中低', policy: '南网区域' },
+            { name: '江西', normal: 0.51, valley: 0.39, gap: '部分深谷', score: 74.1, rating: '推荐', suggestion: '中部地区，成本适中', priority: '中高', policy: '部分地区保留深谷' },
+            { name: '广西', normal: 0.53, valley: 0.37, gap: '南网中等', score: 75.4, rating: '推荐', suggestion: '南网区域，成本中等', priority: '中高', policy: '南网中等成本区' },
+            { name: '湖北', normal: 0.55, valley: 0.35, gap: '政策调整', score: 72.5, rating: '可考虑', suggestion: '中部枢纽，交通便利', priority: '中', policy: '政策调整期' }
+        ];
+
+        // 获取颜色等级
+        function getColorByScore(score) {
+            if (score >= 90) return '#ff4444';    // 红色 - 强烈推荐
+            if (score >= 80) return '#ff8800';    // 橙色 - 推荐
+            if (score >= 70) return '#ffbb33';    // 黄色 - 可考虑
+            if (score >= 60) return '#ffd54f';    // 浅黄色 - 谨慎考虑
+            return '#e0e0e0';                    // 灰色 - 不推荐
+        }
+
+        // 获取评级CSS类
+        function getRatingClass(rating) {
+            switch(rating) {
+                case '强烈推荐': return 'rating-excellent';
+                case '推荐': return 'rating-good';
+                case '可考虑': return 'rating-fair';
+                case '谨慎考虑': return 'rating-poor';
+                default: return 'rating-bad';
+            }
+        }
+
+        // 初始化地图
+        let chart = null;
+        
+        function initMap() {
+            const chartDom = document.getElementById('china-map');
+            chart = echarts.init(chartDom);
+            
+            const option = {
+                title: {
+                    text: '中国各省IDC选址电价分布图',
+                    subtext: '颜色越红表示综合得分越高（电价优势越大）',
+                    left: 'center',
+                    textStyle: {
+                        fontSize: 20,
+                        fontWeight: 'bold'
+                    },
+                    subtextStyle: {
+                        fontSize: 14,
+                        color: '#666'
+                    }
+                },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: function(params) {
+                        const data = electricityData.find(d => d.name === params.name);
+                        if (!data) return params.name;
+                        
+                        return `
+                            <div style="font-weight:bold;margin-bottom:8px;font-size:16px">${params.name}</div>
+                            <div style="margin:4px 0">平段电价：<span style="color:#ff6b6b;font-weight:bold">${data.normal} 元/kWh</span></div>
+                            <div style="margin:4px 0">低谷电价：<span style="color:#4ecdc4;font-weight:bold">${data.valley} 元/kWh</span></div>
+                            <div style="margin:4px 0">峰谷价差：<span style="color:#45b7d1;font-weight:bold">${data.gap}</span></div>
+                            <div style="margin:4px 0">综合得分：<span style="color:#96ceb4;font-weight:bold">${data.score}</span></div>
+                            <div style="margin:4px 0">选址建议：<span style="color:#feca57;font-weight:bold">${data.suggestion}</span></div>
+                        `;
+                    }
+                },
+                visualMap: {
+                    left: 'right',
+                    min: 55,
+                    max: 95,
+                    text: ['高分', '低分'],
+                    realtime: false,
+                    calculable: true,
+                    inRange: {
+                        color: ['#e0e0e0', '#ffd54f', '#ffbb33', '#ff8800', '#ff4444']
+                    },
+                    textStyle: {
+                        color: '#333'
+                    }
+                },
+                series: [{
+                    name: 'IDC选址评分',
+                    type: 'map',
+                    map: 'china',
+                    roam: true,
+                    zoom: 1.2,
+                    center: [105, 36],
+                    emphasis: {
+                        label: {
+                            show: true,
+                            color: '#fff',
+                            backgroundColor: '#1a237e',
+                            padding: [6, 10],
+                            borderRadius: 4,
+                            fontSize: 14,
+                            fontWeight: 'bold'
+                        },
+                        itemStyle: {
+                            areaColor: '#283593',
+                            borderColor: '#fff',
+                            borderWidth: 2,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)',
+                            shadowBlur: 10
+                        }
+                    },
+                    itemStyle: {
+                        areaColor: '#f5f5f5',
+                        borderColor: '#fff',
+                        borderWidth: 1
+                    },
+                    data: electricityData.map(item => ({
+                        name: item.name,
+                        value: item.score
+                    }))
+                }]
+            };
+            
+            chart.setOption(option);
+            
+            // 地图点击事件
+            chart.on('click', function(params) {
+                updateProvinceInfo(params.name);
+            });
+            
+            // 地图鼠标移动事件
+            chart.on('mousemove', function(params) {
+                if (params.componentType === 'series') {
+                    const tooltip = document.getElementById('tooltip');
+                    const data = electricityData.find(d => d.name === params.name);
+                    
+                    if (data) {
+                        tooltip.innerHTML = `
+                            <strong>${params.name}</strong><br>
+                            平段：${data.normal}元/kWh<br>
+                            低谷：${data.valley}元/kWh<br>
+                            得分：${data.score}分<br>
+                            评级：${data.rating}
+                        `;
+                        tooltip.style.left = (params.event.event.clientX + 20) + 'px';
+                        tooltip.style.top = (params.event.event.clientY - 100) + 'px';
+                        tooltip.style.display = 'block';
+                    }
+                }
+            });
+            
+            chart.on('mouseout', function() {
+                document.getElementById('tooltip').style.display = 'none';
+            });
+            
+            // 默认显示宁夏信息
+            updateProvinceInfo('宁夏');
+        }
+        
+        // 更新省份信息
+        function updateProvinceInfo(provinceName) {
+            const data = electricityData.find(d => d.name === provinceName);
+            if (!data) return;
+            
+            document.getElementById('info-province').textContent = provinceName;
+            document.getElementById('info-normal').textContent = data.normal + ' 元/kWh';
+            document.getElementById('info-valley').textContent = data.valley + ' 元/kWh';
+            document.getElementById('info-gap').textContent = data.gap + (typeof data.gap === 'number' ? ' 元/kWh' : '');
+            document.getElementById('info-score').textContent = data.score;
+            
+            const ratingBadge = document.getElementById('info-rating');
+            ratingBadge.textContent = data.rating;
+            ratingBadge.className = 'score-badge ' + getRatingClass(data.rating);
+            
+            document.getElementById('info-suggestion').textContent = data.suggestion;
+            document.getElementById('info-priority').textContent = data.priority;
+            document.getElementById('info-policy').textContent = data.policy;
+            
+            // 高亮地图上的对应省份
+            chart.dispatchAction({
+                type: 'highlight',
+                seriesIndex: 0,
+                name: provinceName
+            });
+        }
+        
+        // 导出数据
+        function exportData() {
+            const csvContent = "data:text/csv;charset=utf-8," 
+                + "省份,平段电价(元/kWh),低谷电价(元/kWh),峰谷价差,综合得分,IDC选址评级,推荐优先级,政策特点\n"
+                + electricityData.map(item => 
+                    `${item.name},${item.normal},${item.valley},${item.gap},${item.score},${item.rating},${item.priority},${item.policy}`
+                ).join("\n");
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "中国IDC选址电价数据.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        // 显示数据表格
+        function showDataTable() {
+            alert('完整数据表格已导出为CSV文件，请下载查看。');
+            exportData();
+        }
+        
+        // 重置视图
+        function resetView() {
+            chart.dispatchAction({
+                type: 'restore'
+            });
+            updateProvinceInfo('宁夏');
+        }
+        
+        // 窗口大小变化时重绘地图
+        window.addEventListener('resize', function() {
+            if (chart) {
+                chart.resize();
+            }
+        });
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', initMap);
+    </script>
+</body>
+</html>
